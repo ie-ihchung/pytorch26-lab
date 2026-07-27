@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // 강의 시작 전 1분 점검 — torch·gymnasium·numpy + CartPole 한 스텝
+      "label": "✅ 실습환경 점검",
+      "type": "shell",
+      "command": "/Users/aebonlee/miniconda3/envs/rl/bin/python 00_env_check.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      // 21개 교시 코드 전체가 문법 오류 없이 import 가능한지 (실행은 안 함)
+      "label": "🔍 전체 실습코드 문법 검사",
+      "type": "shell",
+      "command": "/Users/aebonlee/miniconda3/envs/rl/bin/python -m py_compile day1/*.py day2/*.py day3/*.py projects/*.py && echo '통과 — 문법 오류 없음'",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      // 사이트 데이터 정합성 — 교시 수·빈칸 일치·폐기된 Gym 환경·한글 폰트 지정
+      "label": "🧪 사이트 데이터 정합성 검사",
+      "type": "shell",
+      "command": "node scripts/verify-all.mjs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      // 실제 실행 검증 — 강의 중 멈추는 자리를 미리 찾는다 (몇 분 걸림)
+      "label": "🏃 실행 검증 (노트북 3일 + 프로젝트)",
+      "type": "shell",
+      "command": "/Users/aebonlee/miniconda3/envs/rl/bin/python scripts/verify-run.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      // 사이트 데이터가 정본 — 사이트 코드를 고쳤으면 이걸로 실습파일 재생성
+      "label": "🔄 사이트에서 실습코드 다시 추출",
+      "type": "shell",
+      "command": "node scripts/extract-lab.mjs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      // 강의 중 사이트를 띄워 놓고 볼 때 (로컬 dev 서버)
+      "label": "🌐 강의 사이트 로컬 실행",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "/Volumes/aebon - 데이터/dreamit-web/01-edu-sites/pytorch26" },
+      "isBackground": true,
+      "presentation": { "reveal": "always", "panel": "dedicated" },
+      "problemMatcher": []
+    }
+  ]
+}

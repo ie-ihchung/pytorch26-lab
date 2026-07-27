@@ -1,0 +1,44 @@
+{
+  // ── 파이썬 인터프리터 ────────────────────────────────────
+  // 사이트 환경설정(/setup)의 conda 'rl' 환경을 고정으로 잡는다.
+  // 이 줄이 없으면 VS Code가 base 환경을 잡아 torch를 못 찾는다.
+  "python.defaultInterpreterPath": "/Users/aebonlee/miniconda3/envs/rl/bin/python",
+  "python.terminal.activateEnvironment": true,
+
+  // 실습 코드는 프로젝트 루트 기준 실행 (day1/ 안에서 실행해도 경로 동일)
+  "python.terminal.executeInFileDir": false,
+
+  // ── 강의 화면 가독성 (프로젝터 기준) ─────────────────────
+  "editor.fontSize": 17,
+  "terminal.integrated.fontSize": 16,
+  "editor.minimap.enabled": false,
+  "editor.rulers": [88],
+  "editor.wordWrap": "on",
+  "breadcrumbs.enabled": true,
+  "workbench.editor.enablePreview": false,
+
+  // 강의 중 코드를 고쳐가며 실행하므로 저장은 자동으로
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 1000,
+
+  // ── 강의 방해 요소 끄기 ──────────────────────────────────
+  // Copilot/인라인 제안이 뜨면 수강생이 내 타이핑과 헷갈린다
+  "editor.inlineSuggest.enabled": false,
+  "editor.suggestOnTriggerCharacters": true,
+  "editor.acceptSuggestionOnEnter": "off",
+  "git.enabled": false,
+
+  // Pylance 타입 경고는 강의 코드에 빨간 줄만 늘린다 — 문법 오류만 표시
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticSeverityOverrides": {
+    "reportMissingImports": "warning"
+  },
+
+  // ── Jupyter (셀 단위 시연용) ─────────────────────────────
+  "jupyter.interactiveWindow.textEditor.executeSelection": true,
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.ipynb_checkpoints": true
+  }
+}

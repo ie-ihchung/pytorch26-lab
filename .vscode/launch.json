@@ -1,0 +1,25 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // F5 → 지금 열어둔 실습 파일을 그대로 실행 (강의 중 기본 동작)
+      "name": "▶ 현재 실습 파일 실행",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      // 에러 원인을 수강생과 같이 짚을 때 — 예외 발생 지점에서 멈춘다
+      "name": "🐞 현재 파일 디버그 (예외에서 정지)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

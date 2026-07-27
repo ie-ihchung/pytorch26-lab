@@ -1,0 +1,14 @@
+# PyTorch로 배우는 강화학습 — 수강생 실습환경 (Windows + NVIDIA GPU)
+# 실습 PC 사양: Intel Core i7-8700 / RTX 2070 / Windows
+#
+# ※ 주의: torch는 이 파일로 설치하지 않습니다.
+#   PyPI 기본 torch 휠(Windows)은 CPU 전용입니다 (122MB).
+#   GPU를 쓰려면 아래 명령으로 따로 설치해야 합니다:
+#
+#     pip install torch --index-url https://download.pytorch.org/whl/cu126
+#
+#   RTX 2070(Turing)은 CUDA 12.6 빌드에서 정상 동작합니다.
+
+gymnasium[box2d]
+numpy
+matplotlib

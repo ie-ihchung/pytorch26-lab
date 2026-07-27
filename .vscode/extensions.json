@@ -1,0 +1,11 @@
+{
+  // 사이트 환경설정(/setup) 'VS Code 권장 설정' 섹션과 동일한 목록.
+  // 수강생이 이 폴더를 열면 VS Code가 설치를 권한다.
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-python.debugpy",
+    "ms-toolsai.jupyter",
+    "MS-CEINTL.vscode-language-pack-ko"
+  ]
+}
