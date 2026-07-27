@@ -41,6 +41,9 @@ class Critic(nn.Module):
     def forward(self, s, a):
         return self.net(torch.cat([s, a], dim=-1)).squeeze(-1)
 
+# 과녁을 조금씩만 따라오게 합니다 (tau=0.005 → 매번 0.5%씩).
+# 2일차에는 20판마다 통째로 갈아 끼웠는데, 연속 행동은 값이 예민해서
+# 과녁이 계단처럼 툭툭 튀면 학습이 무너집니다. 그래서 천천히 섞습니다.
 def soft_update(target, source, tau=0.005):
     """타깃 네트워크 소프트 업데이트 — DDPG·SAC 공용"""
     for tp, sp in zip(target.parameters(), source.parameters()):

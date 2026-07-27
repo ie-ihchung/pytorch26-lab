@@ -52,7 +52,9 @@ for episode in range(200):
     while not done:
         with torch.no_grad():
             a = actor(torch.as_tensor(s, dtype=torch.float32)).numpy()
-        a += np.random.normal(0, noise_std * max_action, action_dim)   # 탐험 노이즈
+        # 배우는 항상 같은 답을 냅니다. 그대로 두면 새로운 걸 안 해봅니다.
+        # 그래서 답에 살짝 흔들림을 더합니다. "32도" 대신 "32.4도" 처럼.
+        a += np.random.normal(0, noise_std * max_action, action_dim)
         a = a.clip(-max_action, max_action)
         s_next, r, term, trunc, _ = env.step(a)
         done = term or trunc

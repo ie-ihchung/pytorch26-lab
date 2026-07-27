@@ -44,7 +44,10 @@ for episode in range(600):
     returns = torch.tensor(returns)
     returns = (returns - returns.mean()) / (returns.std() + 1e-8)  # 정규화(간이 베이스라인)
 
-    loss = -(torch.stack(log_probs) * returns).sum()   # 3) ∇logπ · G
+    # 앞의 마이너스: 파이토치는 "줄이는" 방향으로만 움직입니다.
+    # 우리는 점수를 "키우고" 싶으니 부호를 뒤집습니다.
+    # 점수(returns)가 큰 행동일수록 그 행동의 확률을 크게 올립니다.
+    loss = -(torch.stack(log_probs) * returns).sum()
     optimizer.zero_grad(); loss.backward(); optimizer.step()
 
     if episode % 50 == 0:
