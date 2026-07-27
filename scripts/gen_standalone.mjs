@@ -92,10 +92,12 @@ for (const day of days) {
     const slotIdx = src.indexOf(`slot: ${session.slot},`)
     if (slotIdx < 0) { console.log(`  slot ${session.slot} 못 찾음`); continue }
 
-    // 이미 extraCode 가 있으면 건너뛴다 (4교시는 앞서 수동으로 넣었다)
+    // 이미 '전체 코드' 블록이 있으면 건너뛴다.
+    // extraCode 존재 여부로 판단하면 안 된다 — 실험 블록만 있는 교시(1일차 4교시)가
+    // 통째로 빠진다. 전체본과 실험은 별개이므로 제목으로 판단한다.
     const nextSlotIdx = src.indexOf('\n      slot: ', slotIdx + 1)
     const region = src.slice(slotIdx, nextSlotIdx < 0 ? undefined : nextSlotIdx)
-    if (region.includes('extraCode:')) {
+    if (region.includes('이 교시 전체 코드')) {
       console.log(`  ${day.id}일차 ${session.slot}교시 — 이미 있음, 건너뜀`)
       continue
     }
