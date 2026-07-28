@@ -41,7 +41,12 @@ for alpha in [0.01, 0.5, 5.0]:                 # 온도를 세 가지로 바꿔 
 
     # 엔트로피 = 얼마나 골고루인가.  H = -Σ p·log p
     #   한 곳에 몰려 있으면 0에 가깝고, 골고루면 큽니다.
-    entropy = -(pi * pi.log()).sum()
+    #
+    # + 1e-12 를 왜 더할까요?
+    #   alpha 가 아주 작으면 확률이 정확히 0이 되는 칸이 생깁니다.
+    #   log(0) 은 마이너스 무한대라 0 x (-무한대) = nan 이 되어 버립니다.
+    #   아주 작은 수를 더해 그 사고를 막습니다. 값에는 영향이 없습니다.
+    entropy = -(pi * torch.log(pi + 1e-12)).sum()
 
     print(f"alpha={alpha:4.2f}  pi={pi.numpy().round(3)}  H={entropy:.3f}")
 
