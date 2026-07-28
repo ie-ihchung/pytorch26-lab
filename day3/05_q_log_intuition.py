@@ -11,28 +11,69 @@
 # ※ 이 파일은 같은 일차 앞 교시의 변수·클래스를 이어 씁니다.
 #   단독 실행 시 NameError가 나면 정상입니다 — day3_전체.ipynb를 위에서부터 실행하세요.
 
-import torch
+import torch                                   # 파이토치
+
+# ============================================================
+# TAC = SAC 의 '엔트로피 계산법'만 바꾼 것입니다.
+#
+# SAC 는 로그(log)를 씁니다. 로그는 확률이 0에 가까워지면 -무한대로 갑니다.
+#   -> 그래서 나쁜 행동도 확률을 완전히 0으로는 못 만듭니다. 조금은 남습니다.
+#
+# TAC 는 q-로그라는 다른 자를 씁니다. q 를 키우면
+#   -> 나쁜 행동의 확률을 진짜 0으로 만들 수 있습니다.
+#   -> "쓸데없는 데는 아예 안 가겠다" 는 뜻입니다.
+# ============================================================
+
 
 def q_log(x, q):
-    """Tsallis q-logarithm: q→1이면 자연로그로 수렴"""
-    if abs(q - 1.0) < 1e-6:
-        return torch.log(x)
-    return (x.pow(q - 1) - 1) / (q - 1)
+    """
+    Tsallis q-로그. q 가 1이면 우리가 아는 자연로그와 같아집니다.
 
-# 같은 Q값에 대해 q에 따라 정책 분포가 어떻게 달라지는가 (수치 근사)
+    수식:  (x^(q-1) - 1) / (q - 1)
+    q=1 을 그대로 넣으면 0으로 나누게 되므로 따로 처리합니다.
+    """
+    if abs(q - 1.0) < 1e-6:                    # q 가 사실상 1이면
+        return torch.log(x)                    # 그냥 자연로그
+    return (x.pow(q - 1) - 1) / (q - 1)        # 아니면 q-로그 공식
+
+
 q_values = torch.tensor([1.0, 0.9, 0.2, -1.0])
-alpha = 0.5
+# 3교시와 같은 행동 4개입니다.
+#   0번과 1번은 비슷하게 좋고, 3번은 확실히 나쁩니다.
 
-for q in [1.0, 1.5, 2.0]:
-    # 정책 최적화를 경사하강으로 근사: max E[Q] + alpha * S_q(pi)
-    logits = torch.zeros(4, requires_grad=True)
-    opt = torch.optim.Adam([logits], lr=0.05)
-    for _ in range(2000):
-        pi = torch.softmax(logits, dim=0)
-        entropy_q = -(pi * q_log(pi, q)).sum()
+alpha = 0.5                                    # 엔트로피를 얼마나 챙길지 (온도)
+
+for q in [1.0, 1.5, 2.0]:                      # q 를 세 가지로 바꿔 본다
+
+    # 최적 정책을 공식으로 바로 못 구하니 경사하강법으로 찾아봅니다.
+    # (파이토치로 최적화 문제를 푸는 연습이기도 합니다)
+
+    logits = torch.zeros(4, requires_grad=True)   # 행동 4개의 점수. 0에서 시작.
+    opt = torch.optim.Adam([logits], lr=0.05)     # 이 숫자 4개를 직접 학습시킨다
+                                                  # (신경망이 아니라 값 자체를 고친다)
+
+    for _ in range(2000):                      # 2000번 반복해서 최적점을 찾는다
+        pi = torch.softmax(logits, dim=0)      # 점수 -> 확률로
+
+        entropy_q = -(pi * q_log(pi, q)).sum() # q-엔트로피 계산
+                                               # q=1 이면 우리가 아는 엔트로피와 같습니다
+
+        # 목표: 기대 점수도 높이고 + 엔트로피도 높이고
+        #   마이너스를 붙여 '줄이는 문제'로 바꿉니다 (옵티마이저는 줄이기만 하므로)
         loss = -((pi * q_values).sum() + alpha * entropy_q)
-        opt.zero_grad(); loss.backward(); opt.step()
-    print(f"q={q:.1f}  pi={pi.detach().numpy().round(3)}")
 
-# q=1.0 → 모든 행동에 확률 배분 (SAC와 동일)
-# q=2.0 → 나쁜 행동(Q=-1)의 확률이 사실상 0으로 — sparse한 탐험
+        opt.zero_grad()                        # 지난 기울기 지우기
+        loss.backward()                        # 기울기 계산
+        opt.step()                             # 한 걸음 이동
+
+    print(f"q={q:.1f}  pi={pi.detach().numpy().round(3)}")
+    # .detach() = 미분 연결을 끊고 값만 꺼내기 (출력만 할 거니까)
+
+
+# 결과를 읽는 법
+#   q=1.0 -> 나쁜 행동(Q=-1)에도 확률이 조금 남습니다. 이게 SAC 입니다.
+#   q=2.0 -> 나쁜 행동의 확률이 사실상 0이 됩니다. 좋은 것에만 집중합니다.
+#
+# 어느 쪽이 나은가요? 문제에 따라 다릅니다.
+#   함정이 많은 문제  -> q 를 키워 나쁜 곳을 아예 배제하는 게 낫습니다
+#   길이 여러 개인 문제 -> q=1 로 골고루 남겨 두는 게 낫습니다

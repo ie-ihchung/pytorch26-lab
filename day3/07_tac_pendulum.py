@@ -11,33 +11,100 @@
 # ※ 이 파일은 같은 일차 앞 교시의 변수·클래스를 이어 씁니다.
 #   단독 실행 시 NameError가 나면 정상입니다 — day3_전체.ipynb를 위에서부터 실행하세요.
 
-import torch
+import torch                                   # 파이토치
 
-# SAC → TAC: 엔트로피 항의 log를 q-log로 교체하는 것이 전부
-ENTROPIC_INDEX = 2.0        # q=1.0이면 SAC와 동일
+# ============================================================
+# SAC 를 TAC 로 바꾸는 데 필요한 건 딱 두 곳입니다.
+# 엔트로피를 재는 자를 log 에서 q-log 로 바꾸기만 하면 됩니다.
+# 3일 동안 배운 것 중 가장 작은 변경으로 가장 다른 성질을 얻는 예입니다.
+# ============================================================
+
+ENTROPIC_INDEX = 2.0                           # q 값. 1.0 으로 두면 SAC 와 완전히 같아집니다.
+
 
 def q_log_prob(log_prob, q=ENTROPIC_INDEX):
-    """log π → log_q π 변환 (log_prob은 SAC actor가 주는 값)"""
-    if abs(q - 1.0) < 1e-6:
-        return log_prob                       # q→1: SAC로 환원
-    prob = log_prob.exp().clamp(min=1e-8)
-    return (prob.pow(q - 1) - 1) / (q - 1)    # q-logarithm
+    """
+    log π 를 log_q π 로 바꾸는 함수.
+    log_prob 은 4교시 GaussianActor 가 돌려주는 그 값입니다.
+    """
+    if abs(q - 1.0) < 1e-6:                    # q 가 사실상 1이면
+        return log_prob                        # 그대로 돌려준다 (= SAC)
 
-# ── SAC train_step에서 딱 두 곳만 수정 ──
+    prob = log_prob.exp().clamp(min=1e-8)      # 로그를 되돌려 확률로
+                                               # clamp: 0이 되면 계산이 깨지므로 바닥을 깔아 준다
 
-# ① soft TD 목표 (수정 전: q_next - alpha * logp_next)
-#    y = r + gamma * (1 - done) * (q_next - alpha * q_log_prob(logp_next))
+    return (prob.pow(q - 1) - 1) / (q - 1)     # q-로그 공식
 
-# ② Actor 손실 (수정 전: alpha * logp - q_new)
-#    actor_loss = (alpha * q_log_prob(logp) - q_new).mean()
 
-# 실험 과제:
-#  1. ENTROPIC_INDEX = 1.0으로 SAC와 동일 결과가 나오는지 검증
-#  2. q = 1.5, 2.0에서 학습 곡선 비교
-#  3. Pendulum은 행동공간이 작아 차이가 작습니다 —
-#     HalfCheetah 등 고차원 환경에서 q>1의 효과가 뚜렷해집니다
+# ============================================================
+# SAC 의 train_step 에서 딱 두 줄만 바꿉니다
+# ============================================================
 
-# 3일 전체 요약
-# Day1: MDP·벨만 → DP(모델有) → MC/TD(모델無) → SARSA/Q-Learning
-# Day2: Q테이블 → 신경망(DQN·DDQN) / 정책 직접 학습(PG → A2C)
-# Day3: 연속 행동(DDPG) → 최대 엔트로피(SAC) → 일반화 엔트로피(TAC)
+# ① 정답(soft TD 목표) 만드는 줄
+#    바꾸기 전:  y = r + gamma * (1 - done) * (q_next - alpha * logp_next)
+#    바꾼 뒤:    y = r + gamma * (1 - done) * (q_next - alpha * q_log_prob(logp_next))
+
+# ② 배우 손실 줄
+#    바꾸기 전:  actor_loss = (alpha * logp - q_new).mean()
+#    바꾼 뒤:    actor_loss = (alpha * q_log_prob(logp) - q_new).mean()
+
+# 나머지는 손도 대지 않습니다. 트윈 Q, 과녁, 온도 조절 전부 그대로입니다.
+
+
+# ============================================================
+# 직접 해볼 것
+# ============================================================
+#  1. ENTROPIC_INDEX = 1.0 으로 두고 돌려서 SAC 와 결과가 같은지 확인해 보세요.
+#     같아야 정상입니다. 다르면 어딘가 잘못 바꾼 것입니다. (좋은 검증 방법입니다)
+#  2. q = 1.5, 2.0 으로 학습곡선을 비교해 보세요.
+#  3. Pendulum 은 행동이 1개뿐이라 차이가 잘 안 보입니다.
+#     HalfCheetah 처럼 행동이 여러 개인 환경에서 q>1 의 효과가 뚜렷해집니다.
+
+
+# ============================================================
+# 3일 전체 정리 — 우리가 온 길
+# ============================================================
+# 1일차  문제를 적는 법(MDP)과 벨만 방정식
+#        -> 규칙을 다 알 때 계산으로 푸는 법 (DP)
+#        -> 규칙을 몰라도 해보면서 배우는 법 (MC / TD)
+#        -> 행동까지 배우기 (SARSA / Q-Learning)
+#
+# 2일차  표가 너무 커져서 신경망으로 바꾸기 (DQN, Double DQN)
+#        -> 값이 아니라 행동을 직접 배우기 (Policy Gradient)
+#        -> 둘을 합치기 (Actor-Critic, A2C)
+#
+# 3일차  행동이 연속값일 때 (DDPG)
+#        -> 골고루 해보는 것에 점수 주기 (SAC)
+#        -> 그 점수 매기는 자를 바꾸기 (TAC)
+#
+# 이름은 계속 바뀌었지만 하는 일은 하나였습니다.
+#   "평가하고 개선한다" — 3일 내내 이것뿐이었습니다.
+
+# ============================================================
+# 잘 만들어졌는지 확인 (이 부분이 있어야 실행했을 때 결과가 보입니다)
+# ============================================================
+print('q-로그가 log 와 어떻게 다른지 확인합니다.')
+print()
+
+probs = [0.5, 0.2, 0.05, 0.01]
+logp = torch.log(torch.tensor(probs))            # 확률 4개의 로그
+
+print('   확률     log (SAC)    q=1.5      q=2.0')
+print('  ' + '-' * 44)
+for i, p in enumerate(probs):
+    lp = logp[i:i + 1]
+    v1 = q_log_prob(lp, 1.0).item()
+    v15 = q_log_prob(lp, 1.5).item()
+    v2 = q_log_prob(lp, 2.0).item()
+    print(f'  {p:6.2f}  {v1:10.4f}  {v15:9.4f}  {v2:9.4f}')
+
+print()
+print('  -> 확률이 작아질수록(0.01) log 는 -4.6 까지 내려가지만')
+print('     q=2.0 은 -0.99 에서 멈춥니다.')
+print()
+print('     log 는 확률 0 에 가까워지면 마이너스 무한대로 갑니다.')
+print('     그래서 SAC 는 나쁜 행동의 확률을 완전히 0 으로 못 만듭니다.')
+print('     q 를 키우면 그 제약이 풀려서 진짜 0 으로 만들 수 있습니다.')
+print()
+print(f'  q=1.0 이면 log 와 같은가: {torch.allclose(q_log_prob(logp, 1.0), logp)}')
+print('  -> True 여야 정상입니다. TAC 를 SAC 로 되돌릴 수 있다는 뜻입니다.')

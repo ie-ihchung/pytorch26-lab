@@ -11,65 +11,151 @@
 # ※ 이 파일은 같은 일차 앞 교시의 변수·클래스를 이어 씁니다.
 #   단독 실행 시 NameError가 나면 정상입니다 — day1_전체.ipynb를 위에서부터 실행하세요.
 
-import numpy as np
+import numpy as np                          # 숫자 계산 도구
 
-gamma = 1.0
+# ============================================================
+# 최적 정책 찾기 — 두 가지 방법을 나란히
+# ------------------------------------------------------------
+# 3교시에서는 "아무렇게나 걸었을 때" 각 칸의 값을 구했습니다.
+# 이제 ==제일 좋은 길을 찾습니다.==
+#
+# 방법이 두 가지입니다. 성격이 다릅니다.
+#   정책 반복 : 신중한 사람. 끝까지 계산하고 나서 방식을 고친다.
+#   가치 반복 : 성급한 사람. 계산이 덜 끝나도 일단 좋아 보이는 쪽으로 간다.
+#
+# 둘 다 결국 같은 답에 도착합니다. 가는 방식만 다릅니다.
+# ============================================================
+
+gamma = 1.0                 # 미래를 지금과 똑같이 챙긴다
+
 
 def q_from_v(V, s):
-    """상태 s에서 각 행동의 Q값 계산"""
+    """
+    s번 칸에서 각 방향으로 갔을 때의 값(Q)을 계산한다.
+    돌려주는 것: 숫자 4개 (상·하·좌·우 각각의 값)
+
+    Q = 그 방향으로 갔을 때 받는 점수 + 감마 x 도착한 칸의 값
+    """
     return np.array([P[s][a][1] + gamma * V[P[s][a][0]]
                      for a in range(n_actions)])
+    #                P[s][a][1] = 점수,  P[s][a][0] = 다음 칸 번호
 
-# ── 정책 반복 (Policy Iteration) ──────────────────
+
+# ============================================================
+# 방법 ① 정책 반복 (Policy Iteration) — 신중한 사람
+# ============================================================
 def policy_iteration():
-    policy = np.zeros(n_states, dtype=int)      # 모든 상태에서 행동 0
-    while True:
-        # 1) 정책 평가
-        # 평가 sweep에 상한을 둡니다 (MAX_SWEEP).
-        # 이유: 초기 정책(모두 '상')은 맨 윗줄에서 벽에 막혀 제자리에 머뭅니다.
-        # 그러면 V[s] = -1 + 1.0 * V[s] 라서 gamma=1일 때 값이 발산해
-        # delta < 1e-6 조건이 영원히 성립하지 않습니다 (무한 루프).
-        # 상한을 두고 개선 단계로 넘어가면 다음 정책은 종료 상태에 도달하므로
-        # 이후로는 정상 수렴합니다 — 이를 modified policy iteration이라 부릅니다.
+    policy = np.zeros(n_states, dtype=int)   # 처음엔 모든 칸에서 '위쪽(0번)'으로 간다
+                                             # 아무렇게나 정해도 됩니다. 어차피 고쳐 나갈 거니까요.
+
+    while True:                              # 더 고칠 게 없을 때까지 반복
+
+        # ── 1단계: 평가 — 지금 방식대로 하면 각 칸이 얼마나 좋은가 ──
+        #
+        # ★ MAX_SWEEP 이 왜 필요한가 (실제로 겪은 문제입니다) ★
+        #   처음 정책은 모든 칸에서 '위쪽'입니다.
+        #   맨 윗줄에서는 위로 가려다 벽에 막혀 제자리에 머뭅니다.
+        #   그러면 V[s] = -1 + 1.0 x V[s] 가 되어 값이 끝없이 내려갑니다.
+        #   gamma 가 1.0 이라 줄어들지도 않습니다.
+        #   → delta < 1e-6 조건이 영원히 안 맞아서 무한 루프에 빠집니다.
+        #
+        #   그래서 "1000바퀴만 돌고 다음 단계로 넘어간다"고 상한을 둡니다.
+        #   다음 정책은 끝나는 칸에 도달하게 되므로 이후로는 정상 수렴합니다.
+        #   이런 방식을 modified policy iteration 이라고 부릅니다.
         MAX_SWEEP = 1000
-        V = np.zeros(n_states)
-        for _ in range(MAX_SWEEP):
+
+        V = np.zeros(n_states)               # 값을 0에서 다시 시작
+
+        for _ in range(MAX_SWEEP):           # 최대 1000바퀴
             delta = 0.0
             for s in range(n_states):
-                if s in TERMINALS: continue
-                s_next, r = P[s][policy[s]]
-                v = r + gamma * V[s_next]
+                if s in TERMINALS: continue  # 끝나는 칸은 건너뛴다
+
+                s_next, r = P[s][policy[s]]  # 지금 정책이 시키는 방향으로 간다
+                v = r + gamma * V[s_next]    # 벨만 방정식 (3교시와 같은 식)
+
                 delta = max(delta, abs(v - V[s]))
-                V[s] = v
-            if delta < 1e-6: break
-        # 2) 정책 개선
-        stable = True
+                V[s] = v                     # 바로 덮어쓴다 (같은 바퀴 안에서도 반영)
+
+            if delta < 1e-6: break           # 거의 안 변하면 평가 끝
+
+        # ── 2단계: 개선 — 더 좋은 방향이 있으면 바꾼다 ──
+        stable = True                        # "아무것도 안 바뀌었다"고 일단 가정
+
         for s in range(n_states):
             if s in TERMINALS: continue
-            best_a = np.argmax(q_from_v(V, s))
-            if best_a != policy[s]:
-                stable = False
-                policy[s] = best_a
-        if stable:
-            return policy, V
 
-# ── 가치 반복 (Value Iteration) ───────────────────
+            best_a = np.argmax(q_from_v(V, s))   # 값이 가장 큰 방향을 찾는다
+
+            if best_a != policy[s]:          # 지금 방향과 다르면
+                stable = False               #   바뀐 것이 있다고 표시하고
+                policy[s] = best_a           #   그 방향으로 바꾼다
+
+        if stable:                           # 한 칸도 안 바뀌었으면
+            return policy, V                 #   최적 정책을 찾은 것
+
+
+# ============================================================
+# 방법 ② 가치 반복 (Value Iteration) — 성급한 사람
+# ============================================================
 def value_iteration():
     V = np.zeros(n_states)
+
     while True:
         delta = 0.0
         for s in range(n_states):
             if s in TERMINALS: continue
-            v = q_from_v(V, s).max()            # max가 곧 개선
+
+            v = q_from_v(V, s).max()         # ★ 여기가 핵심 ★
+            # 정책 반복은 "지금 정책이 시키는 방향"의 값을 썼습니다.
+            # 가치 반복은 그냥 ==가장 좋은 방향의 값==을 씁니다.
+            # 평가와 개선을 한 줄에 합쳐 버린 것입니다.
+
             delta = max(delta, abs(v - V[s]))
             V[s] = v
-        if delta < 1e-6: break
+
+        if delta < 1e-6: break               # 값이 거의 안 변하면 끝
+
+    # 값이 다 정해진 뒤에 정책을 한 번만 뽑아낸다
     policy = np.array([np.argmax(q_from_v(V, s)) for s in range(n_states)])
     return policy, V
 
-arrows = np.array(['↑', '↓', '←', '→'])
-pi_policy, pi_V = policy_iteration()
-vi_policy, vi_V = value_iteration()
-print("PI 최적 정책:"); print(arrows[pi_policy].reshape(4, 4))
-print("VI 최적 정책:"); print(arrows[vi_policy].reshape(4, 4))
-print("두 가치함수 일치:", np.allclose(pi_V, vi_V))
+
+# ── 두 방법을 돌려서 비교 ────────────────────────────────
+arrows = np.array(['↑', '↓', '←', '→'])      # 숫자 0,1,2,3 을 화살표로 보여 주려고
+
+pi_policy, pi_V = policy_iteration()          # 정책 반복
+vi_policy, vi_V = value_iteration()           # 가치 반복
+
+print("정책 반복이 찾은 최적 정책:")
+print(arrows[pi_policy].reshape(4, 4))        # 화살표를 4x4 로 배열
+print()
+print("가치 반복이 찾은 최적 정책:")
+print(arrows[vi_policy].reshape(4, 4))
+print()
+print("두 방법의 가치함수가 같은가:", np.allclose(pi_V, vi_V))
+print(f"""
+결과 읽는 법
+  각 칸의 화살표는 ==그 칸에서 가장 좋은 방향==입니다.
+  전부 끝나는 칸(왼쪽 위 또는 오른쪽 아래) 쪽을 가리키면 제대로 된 것입니다.
+
+  구석 칸의 화살표는 둘 다 맞는 경우가 있어 방법마다 다를 수 있습니다.
+  거리가 같으면 어느 쪽으로 가도 똑같기 때문입니다.
+  ==중요한 건 화살표가 아니라 값이 같다는 것입니다.== 마지막 줄이 True 면 맞습니다.
+
+  → 신중하게 가나 성급하게 가나 도착점은 같습니다.
+    실무에서는 코드가 짧은 가치 반복을 더 많이 씁니다.
+""")
+
+# ============================================================
+# 바꿔 보기
+#   1) gamma 를 0.9 로 낮추고 값을 출력해 보세요 (print(np.round(vi_V.reshape(4,4),1)))
+#      → 지형이 덜 가파릅니다. 먼 미래를 덜 챙기니까요.
+#   2) gamma 를 0.5 로 낮추면? → 거의 평평해집니다.
+#      멀리 있는 목표가 지금 칸의 값에 거의 영향을 안 줍니다.
+#   3) 가치 반복이 몇 바퀴 만에 끝나는지 세어 보세요.
+#      while 문 안에 카운터를 하나 두시면 됩니다.
+#   4) MAX_SWEEP 을 5 로 줄여 보세요.
+#      평가를 대충 해도 결국 같은 답에 도착하는 것을 볼 수 있습니다.
+#      (그래서 modified policy iteration 이 실용적입니다)
+# ============================================================

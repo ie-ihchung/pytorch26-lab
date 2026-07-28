@@ -63,3 +63,25 @@ def epsilon_greedy(Q, s, n_actions, epsilon=0.1):
     # 그렇지 않으면 → 지금까지 알기로 가장 좋은 방향
     # key=... 는 "이 기준으로 가장 큰 것을 고르라" 는 뜻입니다.
     return max(range(n_actions), key=lambda a: Q[s][a])
+
+# ============================================================
+# 잘 만들어졌는지 확인 (이 부분이 있어야 실행했을 때 결과가 보입니다)
+# ============================================================
+print('두 갱신식이 어떻게 다른지 숫자로 확인합니다.')
+print()
+
+Q_demo = {0: [1.0, 5.0], 1: [3.0, 2.0]}      # 상태 2개, 행동 2개짜리 작은 표
+r, gamma, alpha = 1.0, 0.9, 0.1
+s, a, s2 = 0, 0, 1
+
+a2_greedy = int(np.argmax(Q_demo[s2]))        # 가장 좋은 행동 (Q-러닝이 쓰는 것)
+a2_actual = 1                                 # 실제로 하게 될 행동 (SARSA가 쓰는 것)
+
+sarsa = Q_demo[s][a] + alpha * (r + gamma * Q_demo[s2][a2_actual] - Q_demo[s][a])
+qlear = Q_demo[s][a] + alpha * (r + gamma * Q_demo[s2][a2_greedy] - Q_demo[s][a])
+
+print(f'  다음 상태의 Q값 : {Q_demo[s2]}')
+print(f'  SARSA  (실제 행동 {a2_actual}번 = {Q_demo[s2][a2_actual]}) -> 갱신값 {sarsa:.4f}')
+print(f'  Q러닝  (최선 행동 {a2_greedy}번 = {Q_demo[s2][a2_greedy]}) -> 갱신값 {qlear:.4f}')
+print()
+print('  -> 같은 경험인데 값이 다릅니다. 딱 이 한 곳이 두 방법을 가릅니다.')
