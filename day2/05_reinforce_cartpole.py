@@ -31,6 +31,13 @@ policy = nn.Sequential(
 optimizer = torch.optim.Adam(policy.parameters(), lr=1e-3)   # 정책망을 학습시킨다
 gamma = 0.99                               # 미래를 얼마나 챙길지
 
+print('=' * 52)
+print('5교시 REINFORCE 학습 시작 (600판)')
+print('=' * 52)
+# ↑ 전체본으로 돌리면 앞 교시 출력과 섞이므로 어디서부터인지 표시합니다
+
+score_log = []                             # 판별 점수를 모아 둘 곳 (평균을 내려고)
+
 for episode in range(600):                 # 600판을 한다
     s, _ = env.reset()                     # 새 판 시작
     log_probs, rewards, done = [], [], False
@@ -80,8 +87,18 @@ for episode in range(600):                 # 600판을 한다
     loss.backward()                        # ④ 어디를 고칠지 계산
     optimizer.step()                       # ⑤ 한 걸음 이동
 
+    score_log.append(sum(rewards))         # 이번 판 점수 기록
+
     if episode % 50 == 0:                  # 50판마다 출력
-        print(f"ep {episode:3d}  return {sum(rewards):.0f}")
+        recent = np.mean(score_log[-50:])  # 최근 50판 평균
+        print(f"ep {episode:3d}  최근 50판 평균 {recent:6.1f}   이번 판 {sum(rewards):.0f}")
+        # 한 판 점수만 보면 11 → 28 → 17 처럼 들쭉날쭉해서
+        # 학습이 되는지 안 되는지 알 수가 없습니다.
+        # 그래서 평균을 함께 봅니다. 4교시 DQN 과 같은 방식입니다.
+
+print()
+print(f'  처음 50판 평균 {np.mean(score_log[:50]):6.1f}  →  마지막 50판 평균 {np.mean(score_log[-50:]):6.1f}')
+print('  → 이 두 숫자를 비교하시면 학습이 됐는지 한눈에 보입니다.')
 
 # DQN 과 비교해 보세요.
 #   DQN     : 매 걸음마다 조금씩 배운다 (일기장에서 꺼내서)
